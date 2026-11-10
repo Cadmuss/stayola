@@ -1,0 +1,17 @@
+import React,{useEffect,useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import type {Session} from '@supabase/supabase-js';
+import {Mail,ArrowRight,ArrowLeft} from 'lucide-react';
+const App=React.lazy(()=>import('./App')); 
+import {supabase,configured} from './lib/supabase';
+import './styles.css';
+function Root(){const [session,setSession]=useState<Session|null>(null),[loading,setLoading]=useState(configured),[email,setEmail]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[preview,setPreview]=useState(false);
+useEffect(()=>{if(!supabase)return;let live=true;const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,s)=>{if(live){setSession(s);setLoading(false);setPreview(false)}});supabase.auth.getSession().then(({data,error})=>{if(live){setSession(data.session);setLoading(false);if(error)setMessage(error.message)}}).catch(()=>{if(live){setMessage('Could not load your session. Reload to retry.');setLoading(false)}});return()=>{live=false;subscription.unsubscribe()}},[]);
+async function sendLink(e:React.FormEvent){e.preventDefault();if(!supabase)return;setBusy(true);setMessage('');try{const {error}=await supabase.auth.signInWithOtp({email:email.trim(),options:{emailRedirectTo:window.location.origin}});if(error)throw error;setMessage('Check your email for a sign-in link. Open it on this device.');}catch(e){setMessage((e as Error).message)}finally{setBusy(false)}}
+async function google(){if(!supabase)return;setBusy(true);const {error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.origin}});if(error){setMessage(error.message);setBusy(false)}}
+if(loading)return <div className="auth-page"><p>Opening Stayola…</p></div>;
+if(session)return <App key={session.user.id}/>;
+if(preview)return <><button className="preview-back" onClick={()=>setPreview(false)}><ArrowLeft size={14}/> Back to sign in</button><App previewOnly/></>;
+return <main className="auth-page"><section className="auth-card"><a href="/" className="brand"><span className="brand-icon">s</span>stayola.</a><h1>Your stays, in order.</h1><p>{configured?'Sign in to keep your bookings in one place.':'Add your Supabase settings to get started.'}</p>{configured?<><form onSubmit={sendLink}><label>Email address<input required type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com"/></label><button disabled={busy} className="primary"><Mail size={17}/>{busy?'Sending…':'Email me a sign-in link'}</button></form>{import.meta.env.VITE_ENABLE_GOOGLE_AUTH==='true'&&<button className="secondary google-button" disabled={busy} onClick={google}>Continue with Google</button>}<small>No password needed. New users get an account when they confirm their email.</small></>:<div className="config-help">Copy <code>.env.example</code> to <code>.env.local</code>, add your project URL and publishable key, then restart the dev server. See <code>SETUP.md</code> for database setup.</div>}{message&&<p className="auth-message" role="status">{message}</p>}<button className="try-demo" onClick={()=>setPreview(true)}>Try an example <ArrowRight size={15}/></button></section></main>;
+}
+createRoot(document.getElementById('root')!).render(<React.StrictMode><React.Suspense fallback={<div className="auth-page">Loading Stayola…</div>}><Root/></React.Suspense></React.StrictMode>);
