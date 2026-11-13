@@ -1,4 +1,4 @@
-# Stayola
+# Allthatbook
 
 React + TypeScript + Vite frontend, Supabase authentication/database, Vercel deployment.
 

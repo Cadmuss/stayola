@@ -15,7 +15,9 @@ assert.equal(bookingSchema.safeParse({...b,checkOut:b.checkIn}).success,false);
 assert.equal(bookingSchema.safeParse({...b,checkIn:'2026-02-30'}).success,false);
 assert.equal(bookingSchema.safeParse({...b,url:'javascript:alert(1)'}).success,false);
 assert.equal(bookingSchema.safeParse({...b,cancellationAt:null}).success,false);
-assert.ok(calendar([b]).includes('DTSTART:20261110T120000Z'));
-assert.ok(calendar([b]).includes('TRIGGER:-P1D'));
-assert.ok(!calendar([{...b,state:'cancelled'}]).includes('BEGIN:VEVENT'));
+assert.ok(calendar([b], now).includes('DTSTART:20261110T120000Z'));
+assert.ok(calendar([b], now).includes('TRIGGER:-P1D'));
+assert.ok(
+  !calendar([{ ...b, state: 'cancelled' }], now).includes('BEGIN:VEVENT')
+);
 console.log('15 booking, timezone, validation and calendar checks passed.');

@@ -1,8 +1,8 @@
-# Stayola — Cursor / GitHub / Vercel setup
+# Allthatbook — Cursor / GitHub / Vercel setup
 
 ## 1. Open the project
 
-Extract `Stayola_Vercel_Source.zip`. Open the enclosed `stayola` folder in Cursor (the folder containing `package.json`). Install Node.js 22.13 or newer if needed. In Cursor choose Terminal → New Terminal and use PowerShell.
+Extract `Allthatbook_Vercel_Source.zip`. Open the enclosed `allthatbook` folder in Cursor (the folder containing `package.json`). Install Node.js 22.13 or newer if needed. In Cursor choose Terminal → New Terminal and use PowerShell.
 
 ```powershell
 npm ci
@@ -11,7 +11,7 @@ Copy-Item .env.example .env.local
 
 ## 2. Set up Supabase
 
-1. Create a new Supabase project for Stayola.
+1. Create a new Supabase project for Allthatbook.
 2. Open SQL Editor. Paste the entire contents of `supabase/schema.sql` and run it once. It creates the bookings table, validation rules, row-level security policies and revision trigger. Do not run it against another app's existing `bookings` table.
 3. Copy the project's URL and **publishable key** from its Connect/API settings into `.env.local`:
 
@@ -45,12 +45,12 @@ Tests include 15 booking/date/calendar checks and PostgreSQL-compatible schema/R
 
 ## 4. Push to GitHub
 
-Create a new empty **private** GitHub repository named `stayola`. Do not initialize it with a README. Replace `YOUR_USERNAME` below:
+Create a new empty **private** GitHub repository named `allthatbook`. Do not initialize it with a README. Replace `YOUR_USERNAME` below:
 
 ```powershell
 git init
 git add .
-git commit -m "Set up Stayola with Vite and Supabase"
+git commit -m "Set up Allthatbook with Vite and Supabase"
 git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/stayola.git
 git push -u origin main
@@ -72,7 +72,7 @@ Import your new GitHub repository in Vercel. Use:
 
 Add the same three environment variables from `.env.local` in Vercel. Deploy.
 
-After Vercel gives you the real production URL, change Supabase's **Site URL** to that URL and add it to **Redirect URLs**. Keep localhost in the allowed redirects for development. Add each preview URL explicitly if you want to test login there. Do not assume the hostname is `stayola.vercel.app`; use the URL Vercel actually assigns.
+After Vercel gives you the real production URL, change Supabase's **Site URL** to that URL and add it to **Redirect URLs**. Keep localhost in the allowed redirects for development. Add each preview URL explicitly if you want to test login there. Do not assume the hostname is `allthatbook.vercel.app`; use the URL Vercel actually assigns.
 
 Environment changes in Vercel require a new deployment. The included `vercel.json` provides the SPA fallback and security headers. Its connection policy supports standard `*.supabase.co` projects; update `connect-src` if using a custom Supabase domain.
 

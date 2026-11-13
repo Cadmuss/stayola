@@ -12,4 +12,110 @@ export function nextDeadline(b:Booking,now=Date.now()){if(b.state!=='active')ret
 export function status(b:Booking,now=Date.now()){if(b.state==='cancelled')return 'Cancelled';if(b.state==='completed')return 'Completed';if(b.policy==='unknown')return 'Needs verification';if(b.policy==='nonrefundable'||b.cancellationAt&&Date.parse(b.cancellationAt)<=now)return 'Non-refundable';if(b.cancellationAt&&Date.parse(b.cancellationAt)-now<=3*864e5)return 'Expiring soon';return 'Free cancellation';}
 export function countdown(at:string,now:number){const n=Date.parse(at)-now;if(n<=0)return 'Overdue';const h=Math.ceil(n/36e5);return h>=24?`${Math.floor(h/24)}d ${h%24}h left`:`${h}h left`;}
 export function currentFee(b:Booking,now:number){if(b.state!=='active')return 0;if(b.policy==='unknown')return null;if(b.policy==='free'&&b.cancellationAt&&Date.parse(b.cancellationAt)>now)return 0;return b.fee;}
-export function calendar(bookings:Booking[]){const escape=(v:string)=>v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/[,;]/g,'\\$&');const stamp=(s:string)=>new Date(s).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Stayola//Bookings//EN','CALSCALE:GREGORIAN'];for(const b of bookings.filter(b=>b.state==='active'))for(const [at,label] of [[b.policy==='free'?b.cancellationAt:null,'Cancellation deadline'],[b.paid<b.total?b.paymentAt:null,'Payment due']] as [string|null,string][]){if(!at)continue;lines.push('BEGIN:VEVENT',`UID:${b.id}-${label.replace(/ /g,'')}@stayola`,`DTSTAMP:${stamp(new Date().toISOString())}`,`DTSTART:${stamp(at)}`,`SUMMARY:${escape(label+' — '+b.name)}`,`DESCRIPTION:${escape('Review your reservation with '+b.platform+'. '+b.notes)}`,'BEGIN:VALARM','TRIGGER:-P1D','ACTION:DISPLAY','DESCRIPTION:Booking deadline in 24 hours','END:VALARM','END:VEVENT');}lines.push('END:VCALENDAR');return lines.join('\r\n');}
+export function calendar(bookings: Booking[], now = Date.now()) {
+    const escape = (value: string) =>
+      value
+        .replace(/\\/g, '\\\\')
+        .replace(/\r\n|\r|\n/g, '\\n')
+        .replace(/[,;]/g, '\\$&');
+  
+    const stamp = (value: string | number) =>
+      new Date(value)
+        .toISOString()
+        .replace(/[-:]/g, '')
+        .replace(/\.\d{3}/, '');
+  
+    // Calendar lines must be folded at 75 UTF-8 bytes.
+    const fold = (line: string) => {
+      const encoder = new TextEncoder();
+      let result = '';
+      let bytes = 0;
+  
+      for (const character of line) {
+        const size = encoder.encode(character).length;
+  
+        if (bytes + size > 75) {
+          result += '\r\n ';
+          bytes = 1;
+        }
+  
+        result += character;
+        bytes += size;
+      }
+  
+      return result;
+    };
+  
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Allthatbook//Booking Deadlines//EN',
+      'CALSCALE:GREGORIAN',
+      'X-WR-CALNAME:Allthatbook deadlines',
+    ];
+  
+    for (const booking of bookings) {
+      if (booking.state !== 'active') continue;
+  
+      const deadlines: [string | null, string][] = [
+        [
+          booking.policy === 'free' ? booking.cancellationAt : null,
+          'Cancellation deadline',
+        ],
+        [
+          booking.paid < booking.total ? booking.paymentAt : null,
+          'Payment due',
+        ],
+      ];
+  
+      for (const [at, label] of deadlines) {
+        if (!at) continue;
+  
+        const deadline = Date.parse(at);
+        if (!Number.isFinite(deadline) || deadline <= now) continue;
+  
+        const description = [
+          label === 'Cancellation deadline'
+            ? 'Free cancellation ends at this time. Cancel through your booking provider before the deadline.'
+            : 'Payment is due at this time. Check the booking provider for payment instructions or automatic charges.',
+          `Booking platform: ${booking.platform}.`,
+          `Deadline recorded: ${at}.`,
+          'Check the exact deadline against your booking confirmation.',
+          'This exported event does not automatically update when you change your booking in Allthatbook.',
+        ].join('\n');
+  
+        lines.push(
+          'BEGIN:VEVENT',
+          `UID:${booking.id}-${label.replace(/ /g, '')}@stayola`,
+          `SEQUENCE:${booking.revision}`,
+          `DTSTAMP:${stamp(now)}`,
+          `DTSTART:${stamp(deadline)}`,
+          `DTEND:${stamp(deadline + 15 * 60 * 1000)}`,
+          `SUMMARY:${escape(`${label} — ${booking.name}`)}`,
+          `LOCATION:${escape(booking.destination)}`,
+          `DESCRIPTION:${escape(description)}`,
+          'TRANSP:TRANSPARENT',
+        );
+  
+        for (const days of [7, 3, 1]) {
+          // Don't request notifications for times already past.
+          if (deadline - days * 24 * 60 * 60 * 1000 <= now) continue;
+  
+          lines.push(
+            'BEGIN:VALARM',
+            `TRIGGER:-P${days}D`,
+            'ACTION:DISPLAY',
+            `DESCRIPTION:${escape(
+              `${label} in ${days} ${days === 1 ? 'day' : 'days'} — ${booking.name}`,
+            )}`,
+            'END:VALARM',
+          );
+        }
+  
+        lines.push('END:VEVENT');
+      }
+    }
+  
+    lines.push('END:VCALENDAR');
+    return lines.map(fold).join('\r\n') + '\r\n';
+  }
