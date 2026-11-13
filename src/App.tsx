@@ -875,7 +875,7 @@ export default function Home({
                 <div className="booking-list">
                   {filtered.map(booking => {
                     const bookingStatus = status(booking, now);
-                    const deadline = nextDeadline(booking, now);
+                   
                     const overlapping = overlaps(booking);
 
                     return (
@@ -970,13 +970,43 @@ export default function Home({
                             <span />{bookingStatus}
                           </span>
 
-                          {deadline && (
-                            <span className="deadline">
-                              <Clock3 size={14} />
-                              {deadline.kind === 'Payment due' ? 'Payment · ' : ''}
-                              {countdown(deadline.at, now)}
-                            </span>
-                          )}
+                          {booking.state === 'active' && (
+  <div className="booking-deadlines">
+    {booking.policy === 'free' && booking.cancellationAt && (
+      <div className="booking-deadline-row">
+        <CalendarDays size={18} />
+
+        <div>
+          <strong>Free cancellation ends</strong>
+          <span>
+            {when(booking.cancellationAt, booking.offset)}
+          </span>
+        </div>
+
+        <small>
+          {Date.parse(booking.cancellationAt) <= now
+            ? 'Ended'
+            : countdown(booking.cancellationAt, now)}
+        </small>
+      </div>
+    )}
+
+    {booking.paymentAt && booking.paid < booking.total && (
+      <div className="booking-deadline-row">
+        <Wallet size={18} />
+
+        <div>
+          <strong>Payment due</strong>
+          <span>
+            {when(booking.paymentAt, booking.offset)}
+          </span>
+        </div>
+
+        <small>{countdown(booking.paymentAt, now)}</small>
+      </div>
+    )}
+  </div>
+)}
                         </div>
 
                         {overlapping.length > 0 && booking.state === 'active' && (

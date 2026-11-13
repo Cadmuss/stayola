@@ -793,3 +793,64 @@ footer .footer-brand {
     font-size: 25px;
   }
 }
+/* Show both deadlines inside each booking card */
+.booking-deadlines {
+  flex: 0 0 100%;
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.booking-deadline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border: 1px solid #e2e8da;
+  border-radius: 8px;
+  background: #f7f9f3;
+}
+
+.booking-deadline-row > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #526b45;
+}
+
+.booking-deadline-row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.booking-deadline-row strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #243e34;
+}
+
+.booking-deadline-row span {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  color: #647465;
+  overflow-wrap: anywhere;
+}
+
+.booking-deadline-row > small {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #526b45;
+}
+
+@media (max-width: 650px) {
+  .booking-deadline-row {
+    flex-wrap: wrap;
+  }
+
+  .booking-deadline-row > small {
+    width: 100%;
+    padding-left: 28px;
+  }
+}
