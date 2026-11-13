@@ -1,3 +1,4 @@
+let transferHash = "";
 import { useEffect, useState } from 'react';
 import { supabase } from './lib/supabase';
 import type { ImportResult } from './ImportModal';
@@ -41,7 +42,8 @@ function valid(value: unknown): value is Pending {
 }
 
 function receive(): Promise<Pending | null> {
-  if (transfer) return transfer;
+  if (transfer && (!location.hash.startsWith('#allthatbook_import=') || transferHash === location.hash)) return transfer;
+  transferHash = location.hash;
 
   transfer = (async () => {
     const match = location.hash.match(
@@ -162,20 +164,34 @@ export function ExtensionImport({
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    let active = true;
+      // ALLTHATBOOK_MULTIPAGE_V2: accept another capture in this same tab.
+      let active = true;
+      let request = 0;
 
-    receive()
-      .then(value => {
-        if (active) setPending(value);
-      })
-      .catch(error => {
-        if (active) setError(error.message);
-      });
+      const load = () => {
+        const current = ++request;
+        setDismissed(false);
+        setError('');
 
-    return () => {
-      active = false;
-    };
-  }, []);
+        receive().then(value => {
+          if (active && current === request) setPending(value);
+        }).catch(error => {
+          if (active && current === request) setError(error.message);
+        });
+      };
+
+      const onHash = () => {
+        if (location.hash.startsWith('#allthatbook_import=')) load();
+      };
+
+      load();
+      window.addEventListener('hashchange', onHash);
+
+      return () => {
+        active = false;
+        window.removeEventListener('hashchange', onHash);
+      };
+    }, []);
 
   function close() {
     sessionStorage.removeItem(KEY);
@@ -365,4 +381,6 @@ export function ExtensionImport({
     </div>
   );
 }
+
+
 

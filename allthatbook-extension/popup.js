@@ -1,130 +1,204 @@
-const read = document.querySelector('#read');
-const send = document.querySelector('#send');
-const status = document.querySelector('#status');
-const text = document.querySelector('#text');
-let source = '';
+const $ = id => document.getElementById(id);
 
-read.addEventListener('click', async () => {
-  read.disabled = true;
-  document.querySelector('#preview').hidden = true;
-  status.textContent = 'Reading visible booking details…';
+let state = { pages: [] };
+let busy = false;
+
+async function call(type, data = {}) {
+  const response = await chrome.runtime.sendMessage({
+    type,
+    ...data,
+  });
+
+  if (!response?.ok) {
+    throw new Error(
+      response?.error || 'Could not update the draft.',
+    );
+  }
+
+  return response;
+}
+
+function render() {
+  $('capture').textContent =
+    state.pages.length ? 'Add this page' : 'Start import';
+
+  $('draft').hidden = !state.pages.length;
+
+  $('heading').textContent =
+    state.source + ' · ' + state.pages.length + '/5 pages';
+
+  $('pages').replaceChildren();
+
+  for (const page of state.pages) {
+    const li = document.createElement('li');
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+
+    summary.textContent =
+      page.label +
+      ' · ' +
+      page.text.length.toLocaleString() +
+      ' characters';
+
+    const pre = document.createElement('pre');
+    pre.textContent = page.text;
+
+    details.append(summary, pre);
+
+    const remove = document.createElement('button');
+    remove.className = 'remove';
+    remove.textContent = 'Remove page';
+
+    remove.onclick = () => act(async () => {
+      state = (
+        await call('remove-page', { id: page.id })
+      ).draft;
+
+      $('status').textContent = 'Page removed.';
+    });
+
+    li.append(details, remove);
+    $('pages').append(li);
+  }
+
+  document.querySelectorAll('button,select').forEach(element => {
+    element.disabled = busy;
+  });
+}
+
+async function act(task) {
+  if (busy) return;
+
+  busy = true;
+  render();
+  $('status').textContent = '';
 
   try {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    if (!tab?.id) throw new Error('Open a booking page first.');
-
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-
-      func: () => {
-        const host = location.hostname.toLowerCase();
-
-        const domains = {
-          Agoda: ['agoda.com'],
-          'Booking.com': ['booking.com'],
-          Airbnb: [
-            'airbnb.com',
-            'airbnb.co.uk',
-            'airbnb.com.sg',
-            'airbnb.com.au',
-            'airbnb.ca',
-          ],
-        };
-
-        const provider = Object.entries(domains).find(([, list]) =>
-          list.some(domain =>
-            host === domain || host.endsWith('.' + domain)
-          )
-        )?.[0];
-
-        if (!provider) {
-          return {
-            error: 'Open an Agoda, Booking.com or supported Airbnb reservation page.',
-          };
-        }
-
-        const selection = window.getSelection()?.toString().trim();
-        const main = document.querySelector('main, [role="main"]');
-
-        const visible =
-          selection ||
-          (main instanceof HTMLElement
-            ? main.innerText
-            : document.body.innerText);
-
-        const cleaned = visible
-          .replace(/\u00a0/g, ' ')
-          .replace(/\n{3,}/g, '\n\n')
-          .trim();
-
-        if (cleaned.length < 40) {
-          return {
-            error: 'Not enough details found. Expand the booking details and try again.',
-          };
-        }
-
-        return {
-          source: provider,
-          text: cleaned.slice(0, 20000),
-          truncated: cleaned.length > 20000,
-        };
-      },
-    });
-
-    const result = results[0]?.result;
-
-    if (!result || result.error) {
-      throw new Error(result?.error || 'Could not read this page.');
-    }
-
-    source = result.source;
-    text.value = result.text;
-
-    document.querySelector('#source').textContent =
-      source + ' · Review before continuing';
-
-    document.querySelector('#preview').hidden = false;
-
-    status.textContent = result.truncated
-      ? 'This page is long. Only the first 20,000 characters were captured. Check that the deadlines are included, or select the booking text on the page and read again.'
-      : 'Missing something? Expand it on the booking page, then read again.';
+    await task();
   } catch (error) {
-    status.textContent =
-      error.message ||
-      'Could not read the page. Refresh it and try again.';
+    $('status').textContent = error.message;
   } finally {
-    read.disabled = false;
+    busy = false;
+    render();
   }
+}
+
+$('capture').onclick = () => act(async () => {
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true,
+  });
+
+  if (!tab?.id) {
+    throw new Error('Open the booking page first.');
+  }
+
+  const results = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+
+    func: () => {
+      const host = location.hostname.toLowerCase();
+
+      const providers = {
+        Agoda: ['agoda.com'],
+        'Booking.com': ['booking.com'],
+        Airbnb: [
+          'airbnb.com',
+          'airbnb.co.uk',
+          'airbnb.com.sg',
+          'airbnb.com.au',
+          'airbnb.ca',
+        ],
+      };
+
+      const source = Object.entries(providers).find(
+        ([, domains]) => domains.some(
+          domain =>
+            host === domain ||
+            host.endsWith('.' + domain),
+        ),
+      )?.[0];
+
+      if (!source) {
+        return {
+          error: 'Open an Agoda, Booking.com or supported Airbnb booking page.',
+        };
+      }
+
+      const main = document.querySelector(
+        'main, [role="main"]',
+      );
+
+      const selected =
+        window.getSelection()?.toString().trim();
+
+      const text = (
+        selected ||
+        (
+          main instanceof HTMLElement
+            ? main.innerText
+            : document.body.innerText
+        )
+      )
+        .replace(/\u00a0/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      if (text.length < 40) {
+        return {
+          error: 'Expand the booking details first, then try again.',
+        };
+      }
+
+      if (text.length > 16000) {
+        return {
+          error: 'This page has too much text. Highlight only the booking details, then click Add this page again.',
+        };
+      }
+
+      return { source, text };
+    },
+  });
+
+  const page = results[0]?.result;
+
+  if (!page || page.error) {
+    throw new Error(
+      page?.error || 'Could not read this page.',
+    );
+  }
+
+  const response = await call('add-page', {
+    ...page,
+    label: $('label').value,
+  });
+
+  state = response.draft;
+
+  $('status').textContent = response.duplicate
+    ? 'This exact text is already captured.'
+    : 'Added. Open the next details page, then click the extension again.';
 });
 
-send.addEventListener('click', async () => {
-  send.disabled = true;
-  read.disabled = true;
-
-  try {
-    if (text.value.trim().length < 40) {
-      throw new Error('Include the booking details before continuing.');
-    }
-
-    const response = await chrome.runtime.sendMessage({
-      type: 'prepare-import',
-      source,
-      text: text.value.trim(),
+$('clear').onclick = () => {
+  if (
+    confirm(
+      'Discard these captured pages and start a different booking?',
+    )
+  ) {
+    act(async () => {
+      state = (await call('clear-draft')).draft;
+      $('status').textContent = 'Ready for a new booking.';
     });
-
-    if (!response?.ok) {
-      throw new Error(response?.error || 'Could not open Allthatbook.');
-    }
-
-    window.close();
-  } catch (error) {
-    status.textContent = error.message;
-    send.disabled = false;
-    read.disabled = false;
   }
+};
+
+$('review').onclick = () => act(async () => {
+  await call('review-draft');
+  window.close();
+});
+
+act(async () => {
+  state = (await call('get-draft')).draft;
 });
 

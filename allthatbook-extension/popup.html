@@ -2,35 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Allthatbook</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <h1>Allthatbook</h1>
-  <p>Open one reservation, including its cancellation and payment details.</p>
+  <p>Collect pages for <strong>one reservation</strong>.</p>
 
-  <button id="read">Read this booking page</button>
+  <label for="label">What’s on this page?</label>
+  <select id="label">
+    <option>Booking overview</option>
+    <option>Cancellation terms</option>
+    <option>Payment details</option>
+    <option>Other details</option>
+  </select>
 
-  <section id="preview" hidden>
-    <h2>Check the captured text</h2>
-    <p id="source"></p>
+  <button id="capture">Start import</button>
 
-    <textarea
-      id="text"
-      maxlength="20000"
-      aria-label="Captured booking text"
-    ></textarea>
+  <section id="draft" hidden>
+    <h2 id="heading"></h2>
+    <ul id="pages"></ul>
 
     <p class="small">
-      Remove anything unrelated. The text is sent to Anthropic only
-      when you choose Read booking in Allthatbook.
+      Add any remaining pages before reviewing.
     </p>
 
-    <button id="send">Continue in Allthatbook</button>
+    <button id="review">Review booking</button>
+
+    <button id="clear" class="secondary">
+      Clear draft / start another booking
+    </button>
   </section>
 
   <p id="status" role="status"></p>
+
+  <p class="small">
+    Captured text stays in this browser session until transferred.
+    Allthatbook asks before sending it to Anthropic.
+  </p>
+
   <script type="module" src="popup.js"></script>
 </body>
 </html>

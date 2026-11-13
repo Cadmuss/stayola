@@ -1,41 +1,102 @@
 * { box-sizing: border-box; }
+
 body {
-  width: 370px;
+  width: 380px;
   margin: 0;
   padding: 22px;
   font: 15px/1.5 Arial, sans-serif;
   color: #243e34;
   background: #f8f9f6;
 }
+
 h1 { font-size: 25px; margin: 0 0 10px; }
-h2 { font-size: 17px; margin: 18px 0 8px; }
+h2 { font-size: 17px; margin: 20px 0 10px; }
 p { margin: 10px 0 16px; }
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #cbd6c5;
+  border-radius: 8px;
+  background: white;
+  font: inherit;
+}
+
 button {
   width: 100%;
-  min-height: 46px;
+  min-height: 44px;
   background: #254b3b;
   color: white;
   border: 0;
   border-radius: 8px;
-  padding: 12px;
+  padding: 11px;
   font: 600 15px Arial;
   cursor: pointer;
 }
+
 button:disabled { opacity: .55; cursor: wait; }
-textarea {
-  width: 100%;
-  height: 190px;
-  padding: 10px;
-  border: 1px solid #cbd6c5;
-  border-radius: 8px;
-  font: 14px/1.5 Arial;
-  resize: vertical;
+
+.secondary {
+  margin-top: 10px;
+  background: white;
+  color: #254b3b;
+  border: 1px solid #ccd6c6;
 }
+
 .small { font-size: 13px; color: #5d6d58; }
-#status { margin-bottom: 0; overflow-wrap: anywhere; }
-button:focus-visible, textarea:focus-visible {
+
+#status { overflow-wrap: anywhere; }
+
+#pages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#pages li {
+  padding: 10px;
+  border: 1px solid #dce4d6;
+  border-radius: 8px;
+  background: white;
+  margin-bottom: 8px;
+}
+
+summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 13px/1.5 Arial;
+  max-height: 140px;
+  overflow: auto;
+}
+
+.remove {
+  width: auto;
+  min-height: 36px;
+  background: none;
+  color: #914c3a;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+button:focus-visible,
+select:focus-visible,
+summary:focus-visible {
   outline: 3px solid #8eaa70;
   outline-offset: 3px;
 }
+
 [hidden] { display: none !important; }
 

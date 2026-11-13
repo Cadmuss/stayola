@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Allthatbook</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Allthatbook</h1>
+  <p>Open one reservation, including its cancellation and payment details.</p>
+
+  <button id="read">Read this booking page</button>
+
+  <section id="preview" hidden>
+    <h2>Check the captured text</h2>
+    <p id="source"></p>
+
+    <textarea
+      id="text"
+      maxlength="20000"
+      aria-label="Captured booking text"
+    ></textarea>
+
+    <p class="small">
+      Remove anything unrelated. The text is sent to Anthropic only
+      when you choose Read booking in Allthatbook.
+    </p>
+
+    <button id="send">Continue in Allthatbook</button>
+  </section>
+
+  <p id="status" role="status"></p>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

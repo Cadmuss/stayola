@@ -1,2 +1,1 @@
-export const APP_ORIGIN = "http://localhost:5173";
-
+export const APP_ORIGIN = "https://allthatbook.vercel.app";
